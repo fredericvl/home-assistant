@@ -3,9 +3,9 @@ import logging
 
 from pyevacalor import (  # pylint: disable=redefined-builtin
     ConnectionError,
-    evacalor,
     Error as EvaCalorError,
     UnauthorizedError,
+    evacalor,
 )
 
 from homeassistant.components.climate import ClimateDevice
@@ -262,12 +262,12 @@ class EvaCalorHeatingDevice(ClimateDevice):
             return False
 
         self._device_status = self.device.status
-        self._current_temperature = self.device.air_temperature
-        self._target_temperature = self.device.set_air_temperature
-        self._human_device_status = self.device.device_status_human
-        self._smoke_temperature = self.device.gas_temperature
-        self._real_power = self.device.real_power
-        self._current_power = self.device.set_power
+        self._current_temperature = float(self.device.air_temperature)
+        self._target_temperature = float(self.device.set_air_temperature)
+        self._human_device_status = self.device.status
+        self._smoke_temperature = float(self.device.gas_temperature)
+        self._real_power = int(self.device.real_power)
+        self._current_power = int(self.device.set_power)
 
         if self._device_status == "OFF":
             self._on = False

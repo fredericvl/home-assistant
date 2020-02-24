@@ -1,5 +1,6 @@
 """Tests for the Eva Calor config flow."""
 from unittest.mock import patch
+import uuid
 
 from pyevacalor import (  # pylint: disable=redefined-builtin
     ConnectionError,
@@ -9,10 +10,7 @@ from pyevacalor import (  # pylint: disable=redefined-builtin
 
 from homeassistant import config_entries, data_entry_flow
 from homeassistant.components.evacalor.const import CONF_UUID, DOMAIN
-from homeassistant.const import (
-    CONF_EMAIL,
-    CONF_PASSWORD,
-)
+from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 
 from tests.common import mock_coro
 
@@ -28,16 +26,15 @@ async def test_full_form_flow(hass):
     with patch("homeassistant.components.evacalor.config_flow.evacalor"), patch(
         "homeassistant.components.evacalor.async_setup", return_value=mock_coro(True)
     ) as mock_setup, patch(
+        "homeassistant.components.evacalor.config_flow.uuid.uuid1",
+        return_value=uuid.UUID("acad8d92-5733-11ea-a218-8438354d2860"),
+    ), patch(
         "homeassistant.components.evacalor.async_setup_entry",
         return_value=mock_coro(True),
     ) as mock_setup_entry:
         result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {
-                CONF_EMAIL: "test-username",
-                CONF_PASSWORD: "test-password",
-                CONF_UUID: "AABBCCDDEEFF",
-            },
+            {CONF_EMAIL: "test-username", CONF_PASSWORD: "test-password"},
         )
 
     assert result2["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
@@ -45,7 +42,7 @@ async def test_full_form_flow(hass):
     assert result2["data"] == {
         CONF_EMAIL: "test-username",
         CONF_PASSWORD: "test-password",
-        CONF_UUID: "AABBCCDDEEFF",
+        CONF_UUID: "acad8d92-5733-11ea-a218-8438354d2860",
     }
     await hass.async_block_till_done()
     assert len(mock_setup.mock_calls) == 1
@@ -64,11 +61,7 @@ async def test_form_abort_if_device_already_configured(hass):
     ):
         result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {
-                CONF_EMAIL: "test-username",
-                CONF_PASSWORD: "test-password",
-                CONF_UUID: "AABBCCDDEEFF",
-            },
+            {CONF_EMAIL: "test-username", CONF_PASSWORD: "test-password"},
         )
 
     assert result2["type"] == data_entry_flow.RESULT_TYPE_ABORT
@@ -87,11 +80,7 @@ async def test_form_invalid_auth(hass):
     ):
         result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {
-                CONF_EMAIL: "test-username",
-                CONF_PASSWORD: "test-password",
-                CONF_UUID: "AABBCCDDEEFF",
-            },
+            {CONF_EMAIL: "test-username", CONF_PASSWORD: "test-password"},
         )
 
     assert result2["type"] == data_entry_flow.RESULT_TYPE_FORM
@@ -110,11 +99,7 @@ async def test_form_cannot_connect(hass):
     ):
         result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {
-                CONF_EMAIL: "test-username",
-                CONF_PASSWORD: "test-password",
-                CONF_UUID: "AABBCCDDEEFF",
-            },
+            {CONF_EMAIL: "test-username", CONF_PASSWORD: "test-password"},
         )
 
     assert result2["type"] == data_entry_flow.RESULT_TYPE_FORM
@@ -133,11 +118,7 @@ async def test_form_unknown_error(hass):
     ):
         result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
-            {
-                CONF_EMAIL: "test-username",
-                CONF_PASSWORD: "test-password",
-                CONF_UUID: "AABBCCDDEEFF",
-            },
+            {CONF_EMAIL: "test-username", CONF_PASSWORD: "test-password"},
         )
 
     assert result2["type"] == data_entry_flow.RESULT_TYPE_FORM
