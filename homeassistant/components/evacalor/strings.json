@@ -1,0 +1,22 @@
+{
+  "config": {
+    "title": "Eva Calor",
+    "step": {
+      "user": {
+        "title": "Fill in Eva Calor parameters",
+        "data": {
+          "email": "Username",
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "unauthorized": "Failed to login, please check credentials.",
+      "connection_error": "Connection to URL not possible.",
+      "unknown_error": "Unkown error, please double check device id."
+    },
+    "abort": {
+      "device_already_configured": "Device is already configured."
+    }
+  }
+}
