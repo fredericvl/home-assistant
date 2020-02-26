@@ -156,6 +156,16 @@ class EvaCalorHeatingDevice(ClimateDevice):
         return TEMP_CELSIUS
 
     @property
+    def min_temp(self):
+        """Return the minimum temperature to set."""
+        return self.device.min_temp
+
+    @property
+    def max_temp(self):
+        """Return the maximum temperature to set."""
+        return self.device.max_temp
+
+    @property
     def current_temperature(self):
         """Return the current temperature."""
         return self._current_temperature
@@ -208,14 +218,14 @@ class EvaCalorHeatingDevice(ClimateDevice):
     def turn_off(self):
         """Turn device off."""
         try:
-            """TODO"""
+            self.device.turn_off()
         except EvaCalorError as err:
             _LOGGER.error("Failed to turn off device (original message: %s)", err)
 
     def turn_on(self):
         """Turn device on."""
         try:
-            """TODO"""
+            self.device.turn_on()
         except EvaCalorError as err:
             _LOGGER.error("Failed to turn on device (original message: %s)", err)
 
@@ -226,7 +236,7 @@ class EvaCalorHeatingDevice(ClimateDevice):
             return
 
         try:
-            self.device.set_air_temperature = temperature
+            self.device.set_air_temperature = temperature * 2
         except EvaCalorError as err:
             _LOGGER.error("Failed to set temperature (original message: %s)", err)
 
@@ -263,13 +273,13 @@ class EvaCalorHeatingDevice(ClimateDevice):
 
         self._device_status = self.device.status
         self._current_temperature = float(self.device.air_temperature)
-        self._target_temperature = float(self.device.set_air_temperature)
-        self._human_device_status = self.device.status
+        self._target_temperature = float(self.device.set_air_temperature) / 2
+        self._human_device_status = self.device.status_translated
         self._smoke_temperature = float(self.device.gas_temperature)
         self._real_power = int(self.device.real_power)
         self._current_power = int(self.device.set_power)
 
-        if self._device_status == "OFF":
+        if self._device_status == 0:
             self._on = False
         else:
             self._on = True
