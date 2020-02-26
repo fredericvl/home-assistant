@@ -237,6 +237,7 @@ class EvaCalorHeatingDevice(ClimateDevice):
 
         try:
             self.device.set_air_temperature = temperature * 2
+            self._target_temperature = temperature
         except EvaCalorError as err:
             _LOGGER.error("Failed to set temperature (original message: %s)", err)
 
@@ -247,6 +248,7 @@ class EvaCalorHeatingDevice(ClimateDevice):
 
         try:
             self.device.set_power = fan_mode
+            self._current_power = fan_mode
         except EvaCalorError as err:
             _LOGGER.error("Failed to set temperature (original message: %s)", err)
 
