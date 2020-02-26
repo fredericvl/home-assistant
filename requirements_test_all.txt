@@ -449,7 +449,7 @@ pydeconz==70
 pydispatcher==2.0.5
 
 # homeassistant.components.evacalor
-pyevacalor==0.0.4
+pyevacalor==0.0.5
 
 # homeassistant.components.everlights
 pyeverlights==0.1.0
