@@ -1236,7 +1236,7 @@ pyenvisalink==4.0
 pyephember==0.3.1
 
 # homeassistant.components.evacalor
-pyevacalor==0.0.1
+pyevacalor==0.0.2
 
 # homeassistant.components.everlights
 pyeverlights==0.1.0

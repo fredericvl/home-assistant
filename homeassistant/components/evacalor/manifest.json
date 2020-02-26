@@ -2,7 +2,7 @@
   "domain": "evacalor",
   "name": "Eva Calor",
   "documentation": "https://www.home-assistant.io/integrations/evacalor",
-  "requirements": ["pyevacalor==0.0.1"],
+  "requirements": ["pyevacalor==0.0.2"],
   "dependencies": [],
   "codeowners": ["@fredericvl"],
   "config_flow": true
