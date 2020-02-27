@@ -5,17 +5,14 @@ import uuid
 
 from pyevacalor import (  # pylint: disable=redefined-builtin
     ConnectionError,
-    evacalor,
     Error as EvaCalorError,
     UnauthorizedError,
+    evacalor,
 )
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.const import (
-    CONF_EMAIL,
-    CONF_PASSWORD,
-)
+from homeassistant.const import CONF_EMAIL, CONF_PASSWORD
 
 from .const import CONF_UUID, DOMAIN
 

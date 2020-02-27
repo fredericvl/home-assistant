@@ -22,17 +22,27 @@ from homeassistant.const import (
     ATTR_TEMPERATURE,
     CONF_EMAIL,
     CONF_PASSWORD,
-    PRECISION_WHOLE,
+    PRECISION_HALVES,
     TEMP_CELSIUS,
 )
 
 from .const import (
+    ATTR_DEVICE_ALARM,
     ATTR_DEVICE_STATUS,
     ATTR_HUMAN_DEVICE_STATUS,
     ATTR_REAL_POWER,
     ATTR_SMOKE_TEMP,
     CONF_UUID,
     DOMAIN,
+    EVA_FAN_1,
+    EVA_FAN_2,
+    EVA_FAN_3,
+    EVA_FAN_4,
+    EVA_FAN_5,
+    EVA_STATUS_CLEANING,
+    EVA_STATUS_FLAME,
+    EVA_STATUS_OFF,
+    EVA_STATUS_ON,
     FAN_1,
     FAN_2,
     FAN_3,
@@ -50,11 +60,19 @@ FAN_MODES = [
     FAN_5,
 ]
 
-CURRENT_HVAC_MAP_EFESTO_HEAT = {
-    "ON": CURRENT_HVAC_HEAT,
-    "CLEANING FIRE-POT": CURRENT_HVAC_HEAT,
-    "FLAME LIGHT": CURRENT_HVAC_HEAT,
-    "OFF": CURRENT_HVAC_OFF,
+CURRENT_FAN_MAP_EVA_HEAT = {
+    EVA_FAN_1: FAN_1,
+    EVA_FAN_2: FAN_2,
+    EVA_FAN_3: FAN_3,
+    EVA_FAN_4: FAN_4,
+    EVA_FAN_5: FAN_5,
+}
+
+CURRENT_HVAC_MAP_EVA_HEAT = {
+    EVA_STATUS_ON: CURRENT_HVAC_HEAT,
+    EVA_STATUS_CLEANING: CURRENT_HVAC_HEAT,
+    EVA_STATUS_FLAME: CURRENT_HVAC_HEAT,
+    EVA_STATUS_OFF: CURRENT_HVAC_OFF,
 }
 
 
@@ -93,17 +111,7 @@ class EvaCalorHeatingDevice(ClimateDevice):
 
     def __init__(self, device):
         """Initialize the thermostat."""
-        self.device = device
-        self._device_id = device.id_device
-        self._on = False
-        self._device_status = None
-        self._human_device_status = None
-        self._current_temperature = None
-        self._target_temperature = None
-        self._smoke_temperature = None
-        self._real_power = None
-        self._current_power = None
-        self._name = device.name
+        self._device = device
 
     @property
     def supported_features(self):
@@ -114,21 +122,22 @@ class EvaCalorHeatingDevice(ClimateDevice):
     def device_state_attributes(self):
         """Return the device specific state attributes."""
         return {
-            ATTR_DEVICE_STATUS: self._device_status,
-            ATTR_HUMAN_DEVICE_STATUS: self._human_device_status,
-            ATTR_SMOKE_TEMP: self._smoke_temperature,
-            ATTR_REAL_POWER: self._real_power,
+            ATTR_DEVICE_ALARM: self._device.alarms,
+            ATTR_DEVICE_STATUS: self._device.status,
+            ATTR_HUMAN_DEVICE_STATUS: self._device.status_translated,
+            ATTR_SMOKE_TEMP: self._device.gas_temperature,
+            ATTR_REAL_POWER: self._device.real_power,
         }
 
     @property
     def unique_id(self):
         """Return a unique ID."""
-        return self._device_id
+        return self._device.id_device
 
     @property
     def name(self):
         """Return the name of the Efesto, if any."""
-        return self._name
+        return self._device.name
 
     @property
     def device_info(self):
@@ -136,19 +145,19 @@ class EvaCalorHeatingDevice(ClimateDevice):
         return {
             "identifiers": {(DOMAIN, self.unique_id)},
             "name": self.name,
-            "manufacturer": "Micronova",
-            "model": self.device.name_product,
+            "manufacturer": "Eva Calor",
+            "model": self._device.name_product,
         }
 
     @property
     def precision(self):
         """Return the precision of the system."""
-        return PRECISION_WHOLE
+        return PRECISION_HALVES
 
     @property
     def target_temperature_step(self):
         """Return the supported step of target temperature."""
-        return PRECISION_WHOLE
+        return PRECISION_HALVES
 
     @property
     def temperature_unit(self):
@@ -158,47 +167,40 @@ class EvaCalorHeatingDevice(ClimateDevice):
     @property
     def min_temp(self):
         """Return the minimum temperature to set."""
-        return self.device.min_temp
+        return self._device.min_temp
 
     @property
     def max_temp(self):
         """Return the maximum temperature to set."""
-        return self.device.max_temp
+        return self._device.max_temp
 
     @property
     def current_temperature(self):
         """Return the current temperature."""
-        return self._current_temperature
+        return self._device.air_temperature
 
     @property
     def target_temperature(self):
         """Return the temperature we try to reach."""
-        return self._target_temperature
+        return self._device.set_air_temperature
 
     @property
     def hvac_mode(self):
-        """Return hvac operation ie. heat, cool mode.
-
-        Need to be one of HVAC_MODE_*.
-        """
-        if self._on:
+        """Return hvac operation ie. heat, cool mode."""
+        if self._device.status != 0:
             return HVAC_MODE_HEAT
         return HVAC_MODE_OFF
 
     @property
     def hvac_modes(self):
-        """Return the list of available hvac operation modes.
-
-        Need to be a subset of HVAC_MODES.
-        """
+        """Return the list of available hvac operation modes."""
         return [HVAC_MODE_HEAT, HVAC_MODE_OFF]
 
     @property
     def fan_mode(self):
         """Return fan mode."""
-        if self._current_power in FAN_MODES:
-            return self._current_power
-        return FAN_1
+        if self._device.set_power in CURRENT_FAN_MAP_EVA_HEAT:
+            return CURRENT_FAN_MAP_EVA_HEAT.get(self._device.set_power)
 
     @property
     def fan_modes(self):
@@ -207,27 +209,24 @@ class EvaCalorHeatingDevice(ClimateDevice):
 
     @property
     def hvac_action(self):
-        """Return the current running hvac operation if supported.
-
-        Need to be one of CURRENT_HVAC_*.
-        """
-        if self._human_device_status in CURRENT_HVAC_MAP_EFESTO_HEAT:
-            return CURRENT_HVAC_MAP_EFESTO_HEAT.get(self._human_device_status)
+        """Return the current running hvac operation."""
+        if self._device.status_translated in CURRENT_HVAC_MAP_EVA_HEAT:
+            return CURRENT_HVAC_MAP_EVA_HEAT.get(self._device.status_translated)
         return CURRENT_HVAC_IDLE
 
     def turn_off(self):
         """Turn device off."""
         try:
-            self.device.turn_off()
+            self._device.turn_off()
         except EvaCalorError as err:
-            _LOGGER.error("Failed to turn off device (original message: %s)", err)
+            _LOGGER.error("Failed to turn off device, error: %s", err)
 
     def turn_on(self):
         """Turn device on."""
         try:
-            self.device.turn_on()
+            self._device.turn_on()
         except EvaCalorError as err:
-            _LOGGER.error("Failed to turn on device (original message: %s)", err)
+            _LOGGER.error("Failed to turn on device, error: %s", err)
 
     def set_temperature(self, **kwargs):
         """Set new target temperature."""
@@ -236,19 +235,23 @@ class EvaCalorHeatingDevice(ClimateDevice):
             return
 
         try:
-            self.device.set_air_temperature = temperature * 2
-        except EvaCalorError as err:
-            _LOGGER.error("Failed to set temperature (original message: %s)", err)
+            self._device.set_air_temperature = temperature
+        except (ValueError, EvaCalorError) as err:
+            _LOGGER.error("Failed to set temperature, error: %s", err)
 
     def set_fan_mode(self, fan_mode):
         """Set new target fan mode."""
-        if fan_mode is None:
+        CURRENT_FAN_MAP_EVA_HEAT_REVERSE = {
+            v: k for k, v in CURRENT_FAN_MAP_EVA_HEAT.items()
+        }
+
+        if fan_mode is None or fan_mode not in CURRENT_FAN_MAP_EVA_HEAT_REVERSE:
             return
 
         try:
-            self.device.set_power = fan_mode
+            self._device.set_power = CURRENT_FAN_MAP_EVA_HEAT_REVERSE.get(fan_mode)
         except EvaCalorError as err:
-            _LOGGER.error("Failed to set temperature (original message: %s)", err)
+            _LOGGER.error("Failed to set fan mode, error: %s", err)
 
     def set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
@@ -260,28 +263,24 @@ class EvaCalorHeatingDevice(ClimateDevice):
     def update(self):
         """Get the latest data."""
         try:
-            self.device.update()
+            self._device.update()
         except UnauthorizedError:
-            _LOGGER.error("Wrong credentials for device %s", self._device_id)
+            _LOGGER.error(
+                "Wrong credentials for device %s (%s)",
+                self.name,
+                self._device.id_device,
+            )
             return False
         except ConnectionError:
-            _LOGGER.error("Connection to %s not possible", self._device_id)
+            _LOGGER.error("Connection to Eva Calor not possible")
             return False
         except EvaCalorError as err:
-            _LOGGER.error("Error: %s", err)
+            _LOGGER.error(
+                "Failed to update %s (%s), error: %s",
+                self.name,
+                self._device.id_device,
+                err,
+            )
             return False
-
-        self._device_status = self.device.status
-        self._current_temperature = float(self.device.air_temperature)
-        self._target_temperature = float(self.device.set_air_temperature) / 2
-        self._human_device_status = self.device.status_translated
-        self._smoke_temperature = float(self.device.gas_temperature)
-        self._real_power = int(self.device.real_power)
-        self._current_power = int(self.device.set_power)
-
-        if self._device_status == 0:
-            self._on = False
-        else:
-            self._on = True
 
         return True
